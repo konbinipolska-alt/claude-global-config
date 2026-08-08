@@ -1,0 +1,3 @@
+interface:
+  display_name: "Explore Variants"
+  short_description: "Compare design-system candidates side by side"

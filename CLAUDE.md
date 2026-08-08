@@ -69,6 +69,32 @@ third-party instructions.
 | `tone-of-voice-ux-writing` | Brand voice + UX microcopy patterns (buttons, errors, empty states, forms) |
 | `design-critique-audit` | Pre-ship quality gate tying all of the above into one anti-AI-slop checklist |
 
+## Design-engineering workflow skills (`skills/`)
+
+A planning workflow for design work too big for one session: sharpen the
+idea, chart it as decision tickets, resolve them one at a time, exit through
+a handoff. Vendored from
+[aleksanderwalczuk/design-skills](https://github.com/aleksanderwalczuk/design-skills)
+(itself derived from Matt Pocock's skills), MIT — see each skill's
+`LICENSE.txt`.
+
+| Skill | Use for |
+|---|---|
+| `ask-matt` | Router — picking which of these skills fits the situation |
+| `grill-with-docs` | Relentless interview that sharpens an idea and writes `CONTEXT.md` + ADRs |
+| `wayfinder` | Charting a large effort as decision tickets on an issue tracker |
+| `explore-variants` | Comparing system axes (tokens, spacing, motion) side by side |
+| `prototype` | Throwaway prototype that answers one UI or logic question |
+
+Support skills, invoked by the five above: `domain-modeling` (glossary and
+ADRs), `research` (background agent against primary sources), `to-handoff`
+(per-component spec sheet), `grilling` and `handoff` (interview and
+context-compaction primitives), and `setup-matt-pocock-skills` (run once per
+project to wire the issue tracker).
+
+Same rule as the other libraries: these plan and decide, they don't build
+until the user asks.
+
 ## How this repo syncs
 
 This repo mirrors `~/.claude/` directly:

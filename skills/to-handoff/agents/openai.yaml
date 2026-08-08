@@ -1,0 +1,5 @@
+interface:
+  display_name: "To Handoff"
+  short_description: "Turn a wayfinder map into a design handoff"
+policy:
+  allow_implicit_invocation: false
