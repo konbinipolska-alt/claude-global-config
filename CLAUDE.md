@@ -13,6 +13,19 @@ applies in every repo, not just one project.
   `.claude/skills/`.
 - Git: creating local commits after a meaningful change is fine without
   asking. Always ask for confirmation before `git push`.
+- Reply shape follows the `Clear` output style (see "Output styles"
+  below): one point per turn, spoken tone, and the
+  Where/Did/Worked/Now skeleton after doing work.
+
+## Output styles (`output-styles/`)
+
+| Style | Use for |
+|---|---|
+| `Clear` | Spoken, scannable, low-load replies with a fixed task-reply shape |
+
+Activate with `/output-style Clear` (Claude Code reads
+`~/.claude/output-styles/*.md`). `keep-coding-instructions: true` means the
+style changes tone and structure only — the normal coding behaviour stays.
 
 ## Engineering skills library (`skills/`)
 
@@ -62,6 +75,7 @@ This repo mirrors `~/.claude/` directly:
 
 - `CLAUDE.md` (this file) → `~/.claude/CLAUDE.md`
 - `skills/<name>/SKILL.md` → `~/.claude/skills/<name>/SKILL.md`
+- `output-styles/<name>.md` → `~/.claude/output-styles/<name>.md`
 
 Project repos pull it in automatically via a SessionStart hook — see
 `README.md` for the copy-pasteable snippet. Project-specific context (e.g.
@@ -70,7 +84,8 @@ own `CLAUDE.md`, never in this repo.
 
 ## Updating this repo
 
-1. Edit `CLAUDE.md` or `skills/<name>/SKILL.md` directly in this repo.
+1. Edit `CLAUDE.md`, `skills/<name>/SKILL.md`, or
+   `output-styles/<name>.md` directly in this repo.
 2. Commit and push to `main` (or a branch + PR, if you want review).
 3. Changes reach other projects the next time their SessionStart hook runs
    (i.e. their next Claude Code on the web session) — there's no need to
