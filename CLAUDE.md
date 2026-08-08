@@ -95,6 +95,31 @@ project to wire the issue tracker).
 Same rule as the other libraries: these plan and decide, they don't build
 until the user asks.
 
+## Dev-flow skills (`skills/`)
+
+The engineering half of the same workflow, vendored from the same source
+under MIT. `wayfinder` exits either into `to-handoff` (design) or into
+`to-spec → to-tickets → implement` (code).
+
+| Skill | Use for |
+|---|---|
+| `to-spec` | Turning the current conversation into a spec on the issue tracker |
+| `to-tickets` | Breaking a spec into tracer-bullet tickets with blocking edges |
+| `implement` | Building a piece of work from a spec or tickets |
+| `triage` | Moving issues and external PRs through triage roles into agent-ready briefs |
+| `tdd` | Red-green-refactor and integration tests |
+
+Also: `code-review` (review since a fixed commit, on standards + design axes),
+`diagnosing-bugs`, `codebase-design` and `improve-codebase-architecture` (deep
+modules), `resolving-merge-conflicts`, `setup-pre-commit`,
+`git-guardrails-claude-code`, plus two TypeScript-specific ones,
+`migrate-to-shoehorn` and `scaffold-exercises`.
+
+Overlaps to know about: `diagnosing-bugs` covers similar ground to
+`production-debugger`, the deep-module pair to `clean-architecture-refactor`,
+and `code-review` shadows Claude Code's built-in `/code-review`. Pick one per
+task rather than running both.
+
 ## How this repo syncs
 
 This repo mirrors `~/.claude/` directly:
