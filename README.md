@@ -20,24 +20,29 @@ other key in `settings.json` untouched, and it will not override an
 `outputStyle` you picked yourself — delete the key (or run
 `/output-style Clear`) to go back to the default.
 
-## Installing locally
+## Installing on a machine
 
-For the CLI or desktop app, `~/.claude/` persists, so a one-time install is
-enough:
+One command, once per machine — laptop, desktop app, CLI:
 
 ```bash
-git clone https://github.com/konbinipolska-alt/claude-global-config.git \
-  ~/.claude-global-config-sync
-bash ~/.claude-global-config-sync/install.sh
+curl -fsSL https://raw.githubusercontent.com/konbinipolska-alt/claude-global-config/main/bootstrap.sh | bash
 ```
 
-Re-run those two commands (with `git -C ~/.claude-global-config-sync pull`)
-whenever you want the latest config.
+`bootstrap.sh` clones this repo to `~/.claude-global-config-sync`, runs
+`install.sh`, and — this is the part that makes it stick — registers a
+**user-level `SessionStart` hook** in `~/.claude/settings.json` pointing at
+`sync.sh`. From then on every session in every project pulls `main` and
+re-installs before Claude starts. Nothing to remember, nothing to re-run.
 
-## Covering every repo at once
+`sync.sh` never fails a session: if the pull fails (offline, GitHub down) it
+warns and keeps the copy already on disk.
 
-There are two ways to get this config into a cloud session, and they are
-worth having both.
+To stop the auto-sync, delete that hook from `~/.claude/settings.json`.
+
+## Covering the cloud
+
+Cloud containers are ephemeral, so `~/.claude/` does not persist between
+sessions and the bootstrap has to be part of the image.
 
 **The environment setup script** (`setup-script.sh`) is configured once, in
 the environment dialog at [claude.ai/code](https://claude.ai/code), and then
@@ -45,20 +50,17 @@ applies to every cloud session in that environment — every repository,
 including ones that do not exist yet, with nothing committed to them. Paste
 the file's contents into the **Setup script** field.
 
-Its limit is caching. Anthropic runs the setup script once, snapshots the
-filesystem, and reuses that snapshot for later sessions, so a session picks
-up whatever config existed when the snapshot was built. The snapshot
-rebuilds when you edit the setup script, when you change the environment's
-allowed network hosts, and after roughly seven days. Edits pushed here
-between rebuilds do not reach it.
+Its limit used to be caching: Anthropic runs the setup script once, snapshots
+the filesystem, and reuses that snapshot for later sessions, so a session
+picked up whatever config existed when the snapshot was built. The user-level
+hook fixes that — the snapshot now carries the hook, and the hook pulls fresh
+`main` on every session, however old the snapshot is.
 
-**The per-repo SessionStart hook** (`add-hook.sh`, below) runs on every
-session and pulls `main` fresh each time, so a repo that has it is never
-stale. The cost is a `.claude/` directory committed to that repo.
-
-So: the setup script is the floor that catches every repo, and the hook is
-what you add to repos you actually work in. When both are present the hook
-simply re-syncs over the snapshot, which is harmless.
+**The per-repo SessionStart hook** (`add-hook.sh`, below) does the same job
+for a single repo, at the cost of a `.claude/` directory committed to it. It
+is a fallback for repos in environments you do not control; with the
+user-level hook in place you rarely need it. When both are present the second
+one re-syncs over the first, which is harmless.
 
 ## How the sync works
 
@@ -101,10 +103,6 @@ The generated `.claude/hooks/session-start.sh` is just:
 ```bash
 #!/bin/bash
 set -euo pipefail
-
-if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
-  exit 0
-fi
 
 REPO_URL="https://github.com/konbinipolska-alt/claude-global-config.git"
 SYNC_DIR="$HOME/.claude-global-config-sync"

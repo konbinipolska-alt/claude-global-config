@@ -1,14 +1,16 @@
 #!/bin/bash
 # Install this repo's config into ~/.claude/.
 #
-# Idempotent: safe to run on every session start. Called by the SessionStart
-# hook in consuming projects (see README.md), or by hand for a local install.
+# Idempotent: safe to run on every session start. Called by bootstrap.sh, by
+# the user-level SessionStart hook it registers, by the cloud setup script, or
+# by hand.
 set -euo pipefail
 
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 OUTPUT_STYLE="Clear"
+SYNC_COMMAND="\$HOME/.claude-global-config-sync/sync.sh"
 
 mkdir -p "$CLAUDE_DIR/skills" "$CLAUDE_DIR/output-styles"
 
@@ -63,5 +65,55 @@ PY
 }
 
 set_output_style
+
+# Register a user-level SessionStart hook, so every later session re-syncs on
+# its own — locally and in the cloud, in every project, with nothing to
+# remember and nothing committed to the project repos.
+register_session_hook() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "warning: no python3, skipping SessionStart hook setup"
+    return 0
+  fi
+
+  SETTINGS_FILE="$SETTINGS_FILE" SYNC_COMMAND="$SYNC_COMMAND" python3 - <<'PY'
+import json, os, pathlib
+
+path = pathlib.Path(os.environ["SETTINGS_FILE"])
+command = os.environ["SYNC_COMMAND"]
+
+settings = {}
+if path.exists():
+    try:
+        loaded = json.loads(path.read_text())
+        if isinstance(loaded, dict):
+            settings = loaded
+        else:
+            print(f"warning: {path} is not a JSON object, rewriting it")
+    except json.JSONDecodeError:
+        print(f"warning: {path} is not valid JSON, rewriting it")
+
+hooks = settings.setdefault("hooks", {})
+if not isinstance(hooks, dict):
+    hooks = settings["hooks"] = {}
+matchers = hooks.setdefault("SessionStart", [])
+if not isinstance(matchers, list):
+    matchers = hooks["SessionStart"] = []
+
+for matcher in matchers:
+    if not isinstance(matcher, dict):
+        continue
+    for hook in matcher.get("hooks", []):
+        if isinstance(hook, dict) and "claude-global-config-sync" in str(hook.get("command", "")):
+            raise SystemExit(0)
+
+matchers.append({"hooks": [{"type": "command", "command": command}]})
+path.write_text(json.dumps(settings, indent=2) + "\n")
+print("registered the SessionStart sync hook in settings.json")
+PY
+}
+
+register_session_hook
+
+chmod +x "$SRC_DIR/sync.sh" "$SRC_DIR/bootstrap.sh" 2>/dev/null || true
 
 echo "claude-global-config installed into $CLAUDE_DIR"
