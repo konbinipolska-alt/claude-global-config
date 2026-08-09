@@ -17,23 +17,31 @@ mkdir -p "$CLAUDE_DIR/skills" "$CLAUDE_DIR/output-styles"
 
 cp "$SRC_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
 
-# Copy the skills one directory at a time. A skill name that already exists
-# in ~/.claude/skills as a plain file makes `cp -r` fail, and under `set -e`
-# that aborted the whole install before it reached settings.json — leaving no
-# output style and no sync hook. Move the offender aside and carry on.
+# Copy the skills one directory at a time. Anything at a skill's name that is
+# not a real directory — a plain file, a symlink, a dangling symlink — makes
+# `cp -r` fail, and under `set -e` that aborted the whole install before it
+# reached settings.json, leaving no output style and no sync hook.
+#
+# So: move the offender aside, and treat a copy that still fails as a warning.
+# One unusable skill must never cost the settings.
+#
+# The test is `-L` first, because `-e` is false for a dangling symlink while
+# `cp` still trips over it.
 install_skill() {
   local src="${1%/}"
   local name dest
   name="$(basename "$src")"
   dest="$CLAUDE_DIR/skills/$name"
 
-  if [ -e "$dest" ] && [ ! -d "$dest" ]; then
+  if [ -L "$dest" ] || { [ -e "$dest" ] && [ ! -d "$dest" ]; }; then
     mkdir -p "$CONFLICT_DIR"
     mv "$dest" "$CONFLICT_DIR/$name"
-    echo "moved $dest to $CONFLICT_DIR: it was a file, not a skill directory"
+    echo "moved $dest to $CONFLICT_DIR: it was not a skill directory"
   fi
 
-  cp -r "$src" "$CLAUDE_DIR/skills/"
+  if ! cp -r "$src" "$CLAUDE_DIR/skills/"; then
+    echo "warning: could not install the $name skill"
+  fi
 }
 
 for skill in "$SRC_DIR"/skills/*/; do
