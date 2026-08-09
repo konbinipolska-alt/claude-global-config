@@ -34,6 +34,32 @@ bash ~/.claude-global-config-sync/install.sh
 Re-run those two commands (with `git -C ~/.claude-global-config-sync pull`)
 whenever you want the latest config.
 
+## Covering every repo at once
+
+There are two ways to get this config into a cloud session, and they are
+worth having both.
+
+**The environment setup script** (`setup-script.sh`) is configured once, in
+the environment dialog at [claude.ai/code](https://claude.ai/code), and then
+applies to every cloud session in that environment — every repository,
+including ones that do not exist yet, with nothing committed to them. Paste
+the file's contents into the **Setup script** field.
+
+Its limit is caching. Anthropic runs the setup script once, snapshots the
+filesystem, and reuses that snapshot for later sessions, so a session picks
+up whatever config existed when the snapshot was built. The snapshot
+rebuilds when you edit the setup script, when you change the environment's
+allowed network hosts, and after roughly seven days. Edits pushed here
+between rebuilds do not reach it.
+
+**The per-repo SessionStart hook** (`add-hook.sh`, below) runs on every
+session and pulls `main` fresh each time, so a repo that has it is never
+stale. The cost is a `.claude/` directory committed to that repo.
+
+So: the setup script is the floor that catches every repo, and the hook is
+what you add to repos you actually work in. When both are present the hook
+simply re-syncs over the snapshot, which is harmless.
+
 ## How the sync works
 
 Each consuming project gets a `SessionStart`

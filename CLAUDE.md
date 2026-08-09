@@ -147,9 +147,14 @@ This repo mirrors `~/.claude/` directly:
 - `output-styles/<name>.md` → `~/.claude/output-styles/<name>.md`
 - plus `"outputStyle": "Clear"` merged into `~/.claude/settings.json`
 
-`install.sh` in this repo does all four steps. Project repos run it via a
-SessionStart hook, which `add-hook.sh` writes for them — run it once inside
-a new project and it wires up both the hook and `.claude/settings.json`.
+`install.sh` in this repo does all four steps. Two things call it:
+
+- the cloud environment's setup script (`setup-script.sh`), configured once
+  at claude.ai/code, which covers every repo but only re-runs when the
+  environment snapshot rebuilds
+- a per-repo SessionStart hook, written by `add-hook.sh`, which re-syncs on
+  every session and so never goes stale
+
 Because the copying lives here and not in the projects, later changes to
 what gets synced need no edits in the consuming repos. Project-specific context (e.g.
 a Shopify theme's design tokens, scope boundaries) stays in that project's
