@@ -36,7 +36,7 @@ whenever you want the latest config.
 
 ## How the sync works
 
-Each consuming project (e.g. `moj-pierwszy-theme`) gets a `SessionStart`
+Each consuming project gets a `SessionStart`
 hook that, on every Claude Code on the web session, clones/pulls this repo
 and runs its `install.sh`. Because this
 repo is public, the hook works with a plain `git clone` — no GitHub App
@@ -51,7 +51,26 @@ idempotent (safe to re-run every session).
 
 ### Adding the hook to a project
 
-In the target project repo, create `.claude/hooks/session-start.sh`:
+Run `add-hook.sh` from inside the target repo:
+
+```bash
+git clone https://github.com/konbinipolska-alt/claude-global-config.git \
+  ~/.claude-global-config-sync   # skip if you already have it
+bash ~/.claude-global-config-sync/add-hook.sh
+```
+
+It writes `.claude/hooks/session-start.sh`, makes it executable, and
+registers it under `hooks.SessionStart` in `.claude/settings.json` — keeping
+every other setting and every other hook already in that file. Re-running it
+is safe: the hook script gets refreshed, an existing registration is left
+alone. Commit `.claude/` and merge it into the project's default branch.
+
+Requires `python3` for the `settings.json` edit; without it the script tells
+you what to add by hand.
+
+### Doing it by hand
+
+The generated `.claude/hooks/session-start.sh` is just:
 
 ```bash
 #!/bin/bash
@@ -74,15 +93,11 @@ fi
 bash "$SYNC_DIR/install.sh"
 ```
 
+Make it executable:
+
 ```bash
 chmod +x .claude/hooks/session-start.sh
 ```
-
-Projects still running an older, copy-it-yourself version of this hook keep
-working, but they miss whatever that version does not copy — older ones sync
-only `CLAUDE.md` and `skills/`, and none of them set the output style.
-Replace their `session-start.sh` with the snippet above once, and they stay
-current from then on.
 
 Then register it in the project's `.claude/settings.json` (merge if the
 file already has other hooks):
@@ -112,5 +127,7 @@ config already in place.
 
 Edit `CLAUDE.md`, `skills/<name>/SKILL.md`, `output-styles/<name>.md`, or
 `install.sh` in this repo, commit, and push.
+(`add-hook.sh` is the exception — it writes a file into the *consuming* repo,
+so changing it means re-running it there.)
 Consuming projects pick up the change automatically on their next session
 (no changes needed in the consuming project itself).

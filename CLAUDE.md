@@ -148,9 +148,10 @@ This repo mirrors `~/.claude/` directly:
 - plus `"outputStyle": "Clear"` merged into `~/.claude/settings.json`
 
 `install.sh` in this repo does all four steps. Project repos run it via a
-SessionStart hook — see `README.md` for the copy-pasteable snippet. Because
-the copying lives here and not in the projects, later changes to what gets
-synced need no edits in the consuming repos. Project-specific context (e.g.
+SessionStart hook, which `add-hook.sh` writes for them — run it once inside
+a new project and it wires up both the hook and `.claude/settings.json`.
+Because the copying lives here and not in the projects, later changes to
+what gets synced need no edits in the consuming repos. Project-specific context (e.g.
 a Shopify theme's design tokens, scope boundaries) stays in that project's
 own `CLAUDE.md`, never in this repo.
 
