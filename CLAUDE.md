@@ -147,13 +147,21 @@ This repo mirrors `~/.claude/` directly:
 - `output-styles/<name>.md` → `~/.claude/output-styles/<name>.md`
 - plus `"outputStyle": "Clear"` merged into `~/.claude/settings.json`
 
-`install.sh` in this repo does all four steps. Two things call it:
+`install.sh` in this repo does all four steps, and also registers a
+user-level `SessionStart` hook in `~/.claude/settings.json` that runs
+`sync.sh` — pull plus install — before every later session. That hook is what
+makes the config global: it applies on every machine and in every project,
+local and cloud alike, with nothing to remember and nothing to re-run.
 
+Three things call `install.sh`:
+
+- `bootstrap.sh`, run once per machine, which clones this repo and installs it
+- the user-level hook it registers, on every session from then on
 - the cloud environment's setup script (`setup-script.sh`), configured once
-  at claude.ai/code, which covers every repo but only re-runs when the
-  environment snapshot rebuilds
-- a per-repo SessionStart hook, written by `add-hook.sh`, which re-syncs on
-  every session and so never goes stale
+  at claude.ai/code, which bakes the hook into the environment snapshot
+
+A per-repo SessionStart hook, written by `add-hook.sh`, does the same for one
+repo and stays as a fallback for environments you do not control.
 
 Because the copying lives here and not in the projects, later changes to
 what gets synced need no edits in the consuming repos. Project-specific context (e.g.
