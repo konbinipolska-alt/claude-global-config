@@ -6,22 +6,70 @@ reusable skills library, and output styles, meant to apply in *any* repo,
 not just one project.
 
 This repo mirrors `~/.claude/` directly, so syncing it into a project is a
-plain copy:
+plain copy plus one settings key:
 
 ```
 CLAUDE.md                     -> ~/.claude/CLAUDE.md
-skills/<name>/SKILL.md        -> ~/.claude/skills/<name>/SKILL.md
+skills/<name>/                -> ~/.claude/skills/<name>/
 output-styles/<name>.md       -> ~/.claude/output-styles/<name>.md
+"outputStyle": "Clear"        -> merged into ~/.claude/settings.json
 ```
+
+`install.sh` performs all four steps. It is idempotent, it leaves every
+other key in `settings.json` untouched, and it will not override an
+`outputStyle` you picked yourself — delete the key (or run
+`/output-style Clear`) to go back to the default.
+
+## Installing locally
+
+For the CLI or desktop app, `~/.claude/` persists, so a one-time install is
+enough:
+
+```bash
+git clone https://github.com/konbinipolska-alt/claude-global-config.git \
+  ~/.claude-global-config-sync
+bash ~/.claude-global-config-sync/install.sh
+```
+
+Re-run those two commands (with `git -C ~/.claude-global-config-sync pull`)
+whenever you want the latest config.
+
+## Covering every repo at once
+
+There are two ways to get this config into a cloud session, and they are
+worth having both.
+
+**The environment setup script** (`setup-script.sh`) is configured once, in
+the environment dialog at [claude.ai/code](https://claude.ai/code), and then
+applies to every cloud session in that environment — every repository,
+including ones that do not exist yet, with nothing committed to them. Paste
+the file's contents into the **Setup script** field.
+
+Its limit is caching. Anthropic runs the setup script once, snapshots the
+filesystem, and reuses that snapshot for later sessions, so a session picks
+up whatever config existed when the snapshot was built. The snapshot
+rebuilds when you edit the setup script, when you change the environment's
+allowed network hosts, and after roughly seven days. Edits pushed here
+between rebuilds do not reach it.
+
+**The per-repo SessionStart hook** (`add-hook.sh`, below) runs on every
+session and pulls `main` fresh each time, so a repo that has it is never
+stale. The cost is a `.claude/` directory committed to that repo.
+
+So: the setup script is the floor that catches every repo, and the hook is
+what you add to repos you actually work in. When both are present the hook
+simply re-syncs over the snapshot, which is harmless.
 
 ## How the sync works
 
-Each consuming project (e.g. `moj-pierwszy-theme`) gets a `SessionStart`
+Each consuming project gets a `SessionStart`
 hook that, on every Claude Code on the web session, clones/pulls this repo
-and copies its `CLAUDE.md`, `skills/`, and `output-styles/` into
-`~/.claude/`. Because this
+and runs its `install.sh`. Because this
 repo is public, the hook works with a plain `git clone` — no GitHub App
 scope or auth needed in the session that runs it.
+
+The hook only clones and delegates, so changing *what* gets synced is a
+change in this repo alone — consuming projects never need updating again.
 
 The hook is synchronous (session start waits for it to finish) so the
 config is guaranteed to be in place before Claude starts working, and it's
@@ -29,7 +77,26 @@ idempotent (safe to re-run every session).
 
 ### Adding the hook to a project
 
-In the target project repo, create `.claude/hooks/session-start.sh`:
+Run `add-hook.sh` from inside the target repo:
+
+```bash
+git clone https://github.com/konbinipolska-alt/claude-global-config.git \
+  ~/.claude-global-config-sync   # skip if you already have it
+bash ~/.claude-global-config-sync/add-hook.sh
+```
+
+It writes `.claude/hooks/session-start.sh`, makes it executable, and
+registers it under `hooks.SessionStart` in `.claude/settings.json` — keeping
+every other setting and every other hook already in that file. Re-running it
+is safe: the hook script gets refreshed, an existing registration is left
+alone. Commit `.claude/` and merge it into the project's default branch.
+
+Requires `python3` for the `settings.json` edit; without it the script tells
+you what to add by hand.
+
+### Doing it by hand
+
+The generated `.claude/hooks/session-start.sh` is just:
 
 ```bash
 #!/bin/bash
@@ -49,15 +116,10 @@ else
   git clone --depth 1 "$REPO_URL" "$SYNC_DIR"
 fi
 
-mkdir -p "$HOME/.claude/skills" "$HOME/.claude/output-styles"
-cp "$SYNC_DIR/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
-cp -r "$SYNC_DIR/skills/." "$HOME/.claude/skills/"
-cp -r "$SYNC_DIR/output-styles/." "$HOME/.claude/output-styles/"
+bash "$SYNC_DIR/install.sh"
 ```
 
-Projects that already have an older version of this hook keep working, but
-they only copy `CLAUDE.md` and `skills/` until you update their
-`session-start.sh` with the two `output-styles` lines above.
+Make it executable:
 
 ```bash
 chmod +x .claude/hooks/session-start.sh
@@ -89,7 +151,9 @@ config already in place.
 
 ## Updating the config
 
-Edit `CLAUDE.md`, `skills/<name>/SKILL.md`, or `output-styles/<name>.md`
-in this repo, commit, and push.
+Edit `CLAUDE.md`, `skills/<name>/SKILL.md`, `output-styles/<name>.md`, or
+`install.sh` in this repo, commit, and push.
+(`add-hook.sh` is the exception — it writes a file into the *consuming* repo,
+so changing it means re-running it there.)
 Consuming projects pick up the change automatically on their next session
 (no changes needed in the consuming project itself).

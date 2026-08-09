@@ -23,9 +23,12 @@ applies in every repo, not just one project.
 |---|---|
 | `Clear` | Spoken, scannable, low-load replies with a fixed task-reply shape |
 
-Activate with `/output-style Clear` (Claude Code reads
-`~/.claude/output-styles/*.md`). `keep-coding-instructions: true` means the
-style changes tone and structure only — the normal coding behaviour stays.
+`Clear` is activated automatically: `install.sh` writes
+`"outputStyle": "Clear"` into `~/.claude/settings.json`, so every synced
+session starts in it. Switch with `/output-style <name>` at any time — the
+installer only sets the key when it is missing, so a manual switch survives
+the next sync. `keep-coding-instructions: true` means the style changes tone
+and structure only — the normal coding behaviour stays.
 
 ## Engineering skills library (`skills/`)
 
@@ -120,16 +123,40 @@ Overlaps to know about: `diagnosing-bugs` covers similar ground to
 and `code-review` shadows Claude Code's built-in `/code-review`. Pick one per
 task rather than running both.
 
+## Productivity skills (`skills/`)
+
+The rest of the `productivity` bucket from the same source, MIT. All three
+are `disable-model-invocation: true` — they only run when invoked by name,
+never auto-triggered.
+
+| Skill | Use for |
+|---|---|
+| `grill-me` | Slash-command entry point that runs a `grilling` session |
+| `teach` | Learning a topic across sessions, with state kept in the workspace |
+| `writing-great-skills` | Reference for writing and editing skills predictably |
+
+More overlaps: `teach` shadows Claude Code's built-in `learn` skill, and
+`writing-great-skills` shadows `skill-creator`. Same rule — pick one.
+
 ## How this repo syncs
 
 This repo mirrors `~/.claude/` directly:
 
 - `CLAUDE.md` (this file) → `~/.claude/CLAUDE.md`
-- `skills/<name>/SKILL.md` → `~/.claude/skills/<name>/SKILL.md`
+- `skills/<name>/` → `~/.claude/skills/<name>/`
 - `output-styles/<name>.md` → `~/.claude/output-styles/<name>.md`
+- plus `"outputStyle": "Clear"` merged into `~/.claude/settings.json`
 
-Project repos pull it in automatically via a SessionStart hook — see
-`README.md` for the copy-pasteable snippet. Project-specific context (e.g.
+`install.sh` in this repo does all four steps. Two things call it:
+
+- the cloud environment's setup script (`setup-script.sh`), configured once
+  at claude.ai/code, which covers every repo but only re-runs when the
+  environment snapshot rebuilds
+- a per-repo SessionStart hook, written by `add-hook.sh`, which re-syncs on
+  every session and so never goes stale
+
+Because the copying lives here and not in the projects, later changes to
+what gets synced need no edits in the consuming repos. Project-specific context (e.g.
 a Shopify theme's design tokens, scope boundaries) stays in that project's
 own `CLAUDE.md`, never in this repo.
 
